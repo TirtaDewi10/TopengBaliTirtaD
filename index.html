@@ -4,803 +4,717 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peta Sebaran Topeng Bali (Search & Images)</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; overflow: hidden; }
         #map { width: 100%; height: 100vh; z-index: 1; }
         
-        /* Search Bar UI - Responsif, Elegan & Modern */
+        /* Map Title UI - Posisi Mengambang di Kiri Atas */
+        .map-title-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1100;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            pointer-events: none; /* Agar klik diteruskan ke peta */
+            border-left: 5px solid #e74c3c;
+        }
+        .map-main-title { margin: 0; font-size: 18px; color: #2c3e50; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .map-sub-title { margin: 4px 0 0 0; font-size: 13px; color: #7f8c8d; }
+
+        /* Search Bar UI - Terpisah di Pojok Kanan Atas */
         .search-container {
             position: absolute;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 20px; /* Memisahkan search bar ke sisi kanan */
             z-index: 1100; /* Berada di atas kontrol peta Leaflet */
             background: white;
             padding: 6px 14px;
             border-radius: 30px; /* Desain rounded modern */
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            width: 85%;
-            max-width: 480px;
+            width: 350px;
+            max-width: 100%;
             display: flex;
             align-items: center;
-            gap: 10px;
+            border: 1px solid #f1f5f9;
             transition: all 0.3s ease;
-            border: 1px solid rgba(226, 232, 240, 0.8);
         }
+        
+        .search-container:focus-within {
+            box-shadow: 0 6px 25px rgba(231, 76, 60, 0.2);
+            border-color: #fbd3ce;
+        }
+
         .search-icon {
-            flex-shrink: 0;
+            color: #e74c3c;
+            margin-right: 10px;
             display: flex;
             align-items: center;
+            justify-content: center;
         }
-        .search-container input {
-            flex: 1;
-            padding: 8px 0;
+
+        .search-icon svg { width: 20px; height: 20px; }
+
+        .search-input {
+            width: 100%;
             border: none;
+            padding: 8px 4px;
+            font-size: 15px;
             outline: none;
-            font-size: 14px;
-            color: #1e293b;
+            background: transparent;
+            color: #334155;
+            font-family: inherit;
         }
-        .search-container input::placeholder {
-            color: #94a3b8;
-        }
+        
+        .search-input::placeholder { color: #94a3b8; font-style: italic; }
+
         .clear-btn {
             background: none;
             border: none;
+            color: #94a3b8;
             cursor: pointer;
             padding: 4px;
-            color: #94a3b8;
-            display: none; /* Hanya muncul ketika ada teks input */
+            border-radius: 50%;
+            display: none;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
+            transition: background-color 0.2s, color 0.2s;
         }
-        .clear-btn:hover {
-            background-color: #f1f5f9;
-            color: #64748b;
+        
+        .clear-btn:hover { background-color: #f1f5f9; color: #e74c3c; }
+        .clear-btn svg { width: 16px; height: 16px; }
+
+        /* Counter Hasil Pencarian */
+        .search-counter {
+            position: absolute;
+            top: 75px; /* Berada tepat di bawah search bar */
+            right: 20px; /* Disesuaikan dengan posisi kanan */
+            z-index: 1100;
+            background: #e74c3c;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+            display: none;
+            white-space: nowrap;
         }
 
-        /* Panel Dropdown Hasil Pencarian Masukan */
-        .search-results-dropdown {
-            position: absolute;
-            top: 100%;
+        /* Highlight Text CSS */
+        .highlight { background-color: #fef08a; padding: 0 2px; border-radius: 2px; font-weight: 600; color: #b45309; }
+
+        /* Custom Popup Leaflet styling (Desktop) */
+        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .leaflet-popup-content { margin: 0; width: 320px !important; }
+        .popup-header { background: #e74c3c; color: white; padding: 15px; font-size: 16px; font-weight: bold; border-bottom: 3px solid #c0392b; }
+        .popup-body { padding: 15px; max-height: 280px; overflow-y: auto; background: white; }
+        
+        /* Mobile Bottom Drawer Styling */
+        #mobile-drawer {
+            position: fixed;
+            bottom: -100%;
             left: 0;
-            right: 0;
+            width: 100%;
             background: white;
-            border-radius: 16px;
-            margin-top: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-            max-height: 280px;
-            overflow-y: auto;
-            z-index: 1200;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            display: none;
-            box-sizing: border-box;
-        }
-        .search-result-item {
-            padding: 12px 18px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 85vh;
             display: flex;
             flex-direction: column;
-            gap: 3px;
-            transition: background 0.2s, padding-left 0.2s;
-            text-align: left;
         }
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-        .search-result-item:hover {
-            background-color: #f8fafc;
-            padding-left: 22px;
-        }
-        .result-name {
-            font-size: 13.5px;
-            font-weight: 600;
-            color: #1e293b;
-        }
-        .result-meta {
-            font-size: 11px;
-            color: #64748b;
+        
+        #mobile-drawer.active { bottom: 0; }
+        
+        .drawer-handle-container {
+            width: 100%;
+            padding: 10px 0 5px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Popup Custom Responsive */
-        .responsive-popup .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            padding: 4px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-        .responsive-popup .leaflet-popup-content {
-            margin: 12px 14px;
-            width: 340px !important; /* Lebar default yang pas untuk tablet dan laptop */
-            max-width: 100%;
-        }
-        .popup-title {
-            margin: 0 0 10px 0;
-            font-size: 15px;
-            font-weight: bold;
-            color: #1e293b;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .popup-badge {
-            background-color: #eff6ff;
-            color: #2563eb;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-
-        /* Kontainer Scroll untuk kerapian di dalam balon popup */
-        .popup-scroll-container {
-            max-height: 320px; /* Batas tinggi ideal untuk laptop */
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        /* Desain Scrollbar Minimalis */
-        .popup-scroll-container::-webkit-scrollbar {
-            width: 5px;
-        }
-        .popup-scroll-container::-webkit-scrollbar-track {
-            background: #f8fafc;
-            border-radius: 4px;
-        }
-        .popup-scroll-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .popup-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Desain Accordion Detail Topeng */
-        details {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            background-color: #f8fafc;
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-        details:hover {
-            border-color: #cbd5e1;
-            background-color: #f1f5f9;
-        }
-        summary {
-            padding: 10px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #334155;
+            justify-content: center;
             cursor: pointer;
-            background-color: #f8fafc;
-            outline: none;
+        }
+        
+        .drawer-handle {
+            width: 40px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .drawer-header {
+            padding: 10px 20px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            user-select: none;
+            border-bottom: 1px solid #f1f5f9;
         }
-        summary::-webkit-details-marker {
-            display: none;
+        
+        .drawer-title { font-size: 18px; font-weight: bold; color: #1e293b; margin: 0; }
+        
+        .drawer-close {
+            background: #f1f5f9;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
         }
-        summary::after {
-            content: '▼';
-            font-size: 9px;
-            color: #94a3b8;
-            transition: transform 0.2s;
-        }
-        details[open] summary::after {
-            transform: rotate(180deg);
-        }
-        details[open] summary {
-            border-bottom: 1px solid #e2e8f0;
-            background-color: #f1f5f9;
-        }
-        .accordion-content {
+        
+        .drawer-body { padding: 15px 20px 20px; overflow-y: auto; flex-grow: 1; }
+
+        /* Komponen Item Topeng dalam Akordion (Bisa dipakai di Popup & Drawer) */
+        .mask-item { margin-bottom: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; overflow: hidden; }
+        .mask-item:last-child { margin-bottom: 0; }
+        
+        .mask-summary {
             padding: 12px;
-            font-size: 12.5px;
-            color: #475569;
-            line-height: 1.6;
-            background-color: white;
+            background: #f8fafc;
+            cursor: pointer;
+            font-weight: bold;
+            color: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
         }
-        .mask-img {
+        
+        .mask-summary:hover { background: #f1f5f9; }
+        .mask-summary::marker, .mask-summary::-webkit-details-marker { display: none; }
+        
+        .mask-summary-icon {
+            color: #e74c3c;
+            transition: transform 0.3s;
+        }
+        
+        details[open] .mask-summary-icon { transform: rotate(180deg); }
+        details[open] .mask-summary { background: #fff5f5; border-bottom: 1px dashed #cbd5e1; color: #e74c3c; }
+        
+        .mask-details { padding: 15px; background: white; font-size: 14px; line-height: 1.6; color: #475569; }
+        
+        .mask-meta {
+            display: inline-block;
+            background: #f1f5f9;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+            margin-right: 5px;
+            font-weight: 600;
+        }
+        
+        .mask-desc-title { font-weight: bold; color: #334155; margin-top: 10px; margin-bottom: 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .mask-desc-content { text-align: justify; margin: 0; }
+
+        /* Image Styling */
+        .mask-image-container {
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: #f1f5f9;
+            position: relative;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mask-image {
             width: 100%;
             height: auto;
-            max-height: 150px;
+            display: block;
             object-fit: contain;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
+            max-height: 250px;
         }
 
-        /* MEDIA QUERIES: Penyesuaian Responsif untuk Perangkat Seluler (HP) */
-        @media (max-width: 480px) {
-            .search-container {
-                top: 12px;
-                padding: 4px 12px;
-                width: 88%;
-            }
-            .search-container input {
-                font-size: 13px;
-                padding: 6px 0;
-            }
-            .search-results-dropdown {
-                max-height: 220px;
-                border-radius: 12px;
-            }
-            .search-result-item {
-                padding: 10px 14px;
-            }
-            .search-result-item:hover {
-                padding-left: 16px;
-            }
-            .result-name {
-                font-size: 12.5px;
-            }
-            .responsive-popup .leaflet-popup-content {
-                width: 275px !important; /* Popup menyusut agar pas di layar HP */
-                margin: 10px 10px;
-            }
-            .popup-scroll-container {
-                max-height: 240px; /* Area scroll lebih pendek agar tidak melebihi tinggi layar HP */
-            }
-            .popup-title {
-                font-size: 14px;
-            }
-            summary {
-                padding: 8px 10px;
-                font-size: 12px;
-            }
-            .accordion-content {
-                padding: 10px;
-                font-size: 11.5px;
-            }
+        .img-fallback {
+            padding: 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        
+        .img-fallback svg { width: 40px; height: 40px; margin-bottom: 8px; color: #cbd5e1; }
+
+        /* Notifikasi jika tidak ada hasil */
+        .no-result-toast {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #334155;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 1100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        /* Penyesuaian Tambahan untuk Tablet */
-        @media (min-width: 481px) and (max-width: 768px) {
-            .search-container {
-                width: 75%;
+        /* Overlay untuk meredupkan peta saat drawer mobile terbuka */
+        #map-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #map-overlay.active { display: block; opacity: 1; }
+
+        /* Penyesuaian Responsif Layar Kecil */
+        @media (max-width: 768px) {
+            .map-title-container {
+                top: 15px; 
+                left: 50%;
+                transform: translateX(-50%);
+                width: 85%;
+                max-width: 480px;
+                text-align: center;
+                padding: 8px;
+                border-left: none;
+                border-top: 3px solid #e74c3c;
             }
-            .responsive-popup .leaflet-popup-content {
-                width: 310px !important;
+            .map-main-title { font-size: 15px; }
+            .map-sub-title { font-size: 11px; }
+
+            .search-container { 
+                width: 90%; 
+                top: 85px; 
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
             }
+            .search-counter { 
+                top: 130px; 
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+            } 
+            .leaflet-popup { display: none !important; } /* Sembunyikan popup asli di mobile */
+            .leaflet-control-zoom { display: none; } /* Sembunyikan tombol zoom di mobile */
         }
     </style>
 </head>
 <body>
 
-    <!-- Bar Pencarian Responsif -->
-    <div class="search-container" id="searchBar">
+    <!-- Judul Sistem Web-GIS (Terpisah di Kiri Atas) -->
+    <div class="map-title-container">
+        <h1 class="map-main-title">Peta Persebaran Topeng Bali</h1>
+        <p class="map-sub-title">Katalog "Mask of Bali Vol. II"</p>
+    </div>
+
+    <!-- UI Pencarian Modern (Terpisah di Kanan Atas) -->
+    <div class="search-container" id="searchBox">
         <div class="search-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
         </div>
-        <input type="text" id="searchInput" placeholder="Cari topeng, lokasi, atau tahun..." autocomplete="off" />
-        <button class="clear-btn" id="clearBtn" title="Hapus pencarian">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+        <input type="text" id="searchInput" class="search-input" placeholder="Cari nama karakter, ID, tahun, lokasi..." autocomplete="off">
+        <button id="clearBtn" class="clear-btn" title="Hapus pencarian">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
-        
-        <!-- Panel Saran Dropdown Pencarian -->
-        <div class="search-results-dropdown" id="searchResults"></div>
     </div>
+
+    <!-- Counter Hasil Pencarian -->
+    <div id="searchCounter" class="search-counter">Menampilkan X lokasi</div>
+
+    <!-- Toast Tidak Ada Hasil -->
+    <div id="noResultToast" class="no-result-toast">Tidak ditemukan data topeng yang sesuai.</div>
+
+    <!-- Overlay Latar Belakang -->
+    <div id="map-overlay"></div>
 
     <!-- Kontainer Peta -->
     <div id="map"></div>
 
-    <!-- Leaflet JS -->
+    <!-- Mobile Bottom Drawer UI -->
+    <div id="mobile-drawer">
+        <div class="drawer-handle-container" id="drawerHandle">
+            <div class="drawer-handle"></div>
+        </div>
+        <div class="drawer-header">
+            <h3 class="drawer-title" id="drawerTitle">Lokasi</h3>
+            <button class="drawer-close" id="drawerClose">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="drawer-body" id="drawerBody">
+            <!-- Konten dinamis masuk ke sini -->
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inisialisasi peta ke tengah Pulau Bali (zoomControl dimatikan di sini)
-        var map = L.map('map', { zoomControl: false }).setView([-8.409518, 115.188919], 9);
+        let allMaskData = []; // Array untuk menyimpan semua data
+        let markersGroup = L.layerGroup(); // Grup layer untuk marker agar mudah dihapus/update
+        let currentSearchQuery = ""; // Menyimpan kata kunci pencarian saat ini
+        let isMobile = window.innerWidth <= 768; // Deteksi perangkat awal
 
-        // Tambahkan kontrol Zoom manual di pojok kanan bawah agar bebas tabrakan dengan kolom pencarian
+        // --- INISIALISASI PETA ---
+        const map = L.map('map', { zoomControl: false }).setView([-8.409518, 115.188916], 10); // Center di Bali
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CartoDB</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Pindahkan kontrol zoom ke kanan bawah
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Tile layer CartoDB Voyager
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        // KREDIT DEVELOPER: Menambahkan nama ke atribusi Leaflet di kanan bawah
+        map.attributionControl.setPrefix('Dikembangkan oleh &copy; <strong>Luh Made Tirta Dewi</strong>');
 
-        // Marker Kustom (SVG Merah)
-        var customMarkerIcon = L.divIcon({
-            html: `<svg width="28" height="40" viewBox="0 0 30 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15 0C6.71 0 0 6.71 0 15C0 26.25 15 42 15 42C15 42 30 26.25 30 15C30 6.71 23.29 0 15 0ZM15 20.5C11.96 20.5 9.5 18.04 9.5 15C9.5 11.96 11.96 9.5 15 9.5C18.04 9.5 20.5 11.96 20.5 15C20.5 18.04 18.04 20.5 15 20.5Z" fill="#e74c3c" stroke="#ffffff" stroke-width="2"/>
-                   </svg>`,
-            iconSize: [28, 40],
-            iconAnchor: [14, 40],
-            popupAnchor: [0, -38],
-            className: 'custom-marker'
+        markersGroup.addTo(map);
+
+        // Kustom Icon Leaflet Merah yang lebih menonjol
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
-        var markerLayer = null;
-        var geojsonData = null;
-        var selectedMaskId = null;
-
-        // --- PARSER CSV ---
-        function parseCSV(text) {
-            const lines = [];
-            let row = [""];
-            let inQuotes = false;
-
-            for (let i = 0; i < text.length; i++) {
-                const c = text[i];
-                const next = text[i+1];
-                if (c === '"') {
-                    if (inQuotes && next === '"') {
-                        row[row.length - 1] += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (c === ',' && !inQuotes) {
-                    row.push("");
-                } else if ((c === '\r' || c === '\n') && !inQuotes) {
-                    if (c === '\r' && next === '\n') { i++; }
-                    lines.push(row);
-                    row = [""];
-                } else {
-                    row[row.length - 1] += c;
+        // Event listener resize window untuk update state isMobile
+        window.addEventListener('resize', () => {
+            const wasMobile = isMobile;
+            isMobile = window.innerWidth <= 768;
+            
+            // Jika berubah mode dan drawer sedang terbuka, sesuaikan UI
+            if (wasMobile !== isMobile) {
+                const drawer = document.getElementById('mobile-drawer');
+                if (!isMobile && drawer.classList.contains('active')) {
+                    closeDrawer(); // Tutup drawer jika pindah ke layar besar
                 }
             }
-            if (row.length > 1 || row[0] !== "") {
-                lines.push(row);
+        });
+
+        // --- PEMROSESAN DATA ---
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const result = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i]) continue;
+                
+                // Regex cerdas untuk memisahkan koma, namun mengabaikan koma di dalam tanda kutip ganda
+                const row = lines[i].match(/(?:\"([^\"]*(?:\"\"[^\"]*)*)\")|([^\,]+)/g);
+                
+                if (row && row.length >= 8) { // Pastikan ada cukup kolom minimal
+                    const no = row[0] ? row[0].replace(/^"|"$/g, '').trim() : '';
+                    const id = row[1] ? row[1].replace(/^"|"$/g, '').trim() : '';
+                    const name = row[2] ? row[2].replace(/^"|"$/g, '').trim() : '';
+                    const year = row[3] ? row[3].replace(/^"|"$/g, '').trim() : '';
+                    const location = row[4] ? row[4].replace(/^"|"$/g, '').trim() : '';
+                    const desc = row[5] ? row[5].replace(/^"|"$/g, '').trim() : '';
+                    const lat = parseFloat(row[6] ? row[6].replace(/^"|"$/g, '').trim() : 0);
+                    const lng = parseFloat(row[7] ? row[7].replace(/^"|"$/g, '').trim() : 0);
+                    // Kolom foto opsional, periksa ketersediaannya
+                    const photo = (row.length > 8 && row[8]) ? row[8].replace(/^"|"$/g, '').trim() : '';
+
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        result.push({ no, id, name, year, location, desc, lat, lng, photo });
+                    }
+                }
             }
-            return lines;
+            return result;
         }
 
-        // --- MENGUBAH DATA CSV KE GEOJSON ---
-        function csvToGeoJSON(csvLines) {
-            if (csvLines.length < 2) return null;
-            const header = csvLines[0].map(h => h.trim().toLowerCase());
-            const dataRows = csvLines.slice(1);
-
-            const idIdx = header.indexOf('id_topeng');
-            const namaIdx = header.indexOf('nama_topeng');
-            const tahunIdx = header.indexOf('tahun');
-            const lokasiIdx = header.indexOf('lokasi');
-            const deskripsiIdx = header.indexOf('deskripsi');
-            const latIdx = header.indexOf('latitude');
-            const lngIdx = header.indexOf('longitude');
-            const imgIdx = header.indexOf('image');
-
-            if (latIdx === -1 || lngIdx === -1) {
-                console.error("Kolom latitude dan longitude tidak ditemukan.");
-                return null;
-            }
-
-            const locationGroups = {};
-
-            dataRows.forEach(row => {
-                if (row.length < Math.max(latIdx, lngIdx)) return;
-
-                const lat = parseFloat(row[latIdx]?.trim());
-                const lng = parseFloat(row[lngIdx]?.trim());
-                
-                if (isNaN(lat) || isNaN(lng)) return;
-
-                const id = row[idIdx]?.trim() || '';
-                const nama = row[namaIdx]?.trim() || '';
-                const tahun = row[tahunIdx]?.trim() || '';
-                const lokasi = row[lokasiIdx]?.trim() || '';
-                const deskripsi = row[deskripsiIdx]?.trim() || '';
-                const gambar = row[imgIdx]?.trim() || '';
-
-                const key = `${lokasi}_${lat.toFixed(6)}_${lng.toFixed(6)}`;
-
-                if (!locationGroups[key]) {
-                    locationGroups[key] = {
-                        lokasi: lokasi,
-                        latitude: lat,
-                        longitude: lng,
-                        masks: []
+        function groupDataByLocation(data) {
+            const grouped = {};
+            data.forEach(item => {
+                const key = `${item.lat}_${item.lng}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        lat: item.lat,
+                        lng: item.lng,
+                        locationName: item.location,
+                        items: []
                     };
                 }
-
-                locationGroups[key].masks.push({
-                    id_topeng: id,
-                    nama: nama,
-                    tahun: tahun,
-                    deskripsi: deskripsi,
-                    gambar: gambar
-                });
+                grouped[key].items.push(item);
             });
-
-            const features = Object.values(locationGroups).map(group => {
-                return {
-                    type: "Feature",
-                    geometry: {
-                        type: "Point",
-                        coordinates: [group.longitude, group.latitude]
-                    },
-                    properties: {
-                        lokasi: group.lokasi,
-                        latitude: group.latitude,  // Koordinat di-inject ke properti agar mudah diakses
-                        longitude: group.longitude,
-                        masks: group.masks
-                    }
-                };
-            });
-
-            return {
-                type: "FeatureCollection",
-                features: features
-            };
+            return grouped;
         }
 
-        function processCSVData(csvText) {
-            const parsedLines = parseCSV(csvText);
-            const geojson = csvToGeoJSON(parsedLines);
-            if (geojson && geojson.features.length > 0) {
-                geojsonData = geojson;
-                updateMarkers();
-            } else {
-                console.error("Gagal memproses data.");
-            }
-        }
-
-        function highlightText(text, search) {
-            if (!text || !search) return text || '';
-            const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const regex = new RegExp('(' + escapedSearch + ')', 'gi');
-            return text.toString().replace(regex, '<mark style="background-color: #ffeb3b; padding: 0 2px; border-radius: 2px; color: black; font-weight: inherit;">$1</mark>');
-        }
-
-        // --- POPUP BERBASIS AKORDION DENGAN SISTEM FILTER DAN SCROLL ---
-        function buildAccordionHtml(properties, searchTerm, targetMaskId, activeHighlightId) {
-            var search = searchTerm ? searchTerm.toLowerCase() : "";
-            var matchedMasks = [];
+        // --- HIGHLIGHT TEXT UTILITY ---
+        function highlightText(text, query) {
+            if (!query || query.trim() === "") return text;
             
-            // Saring dan kumpulkan topeng yang cocok dengan kata kunci secara berurutan
-            properties.masks.forEach(function(mask) {
-                if (targetMaskId) {
-                    // Mode fokus satu: Hanya tampilkan topeng yang dipilih dari saran dropdown
-                    if (mask.id_topeng === targetMaskId) {
-                        matchedMasks.push(mask);
-                    }
+            // Hindari injeksi HTML
+            const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            // Pencarian case-insensitive
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return safeText.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // --- GENERATE HTML UNTUK KONTEN (Dipakai Popup & Drawer) ---
+        function generateHTMLContent(locationData, query = "") {
+            const itemCount = locationData.items.length;
+            const title = locationData.locationName;
+            
+            let html = `<div class="popup-header">
+                            <div>${title}</div>
+                            <div style="font-size: 12px; font-weight: normal; margin-top: 2px;">Terdapat ${itemCount} koleksi topeng</div>
+                        </div>
+                        <div class="popup-body">`;
+            
+            locationData.items.forEach(item => {
+                // Terapkan highlight pada teks
+                const highlightedName = highlightText(item.name, query);
+                const highlightedId = highlightText(item.id, query);
+                const highlightedYear = highlightText(item.year, query);
+                const highlightedDesc = highlightText(item.desc, query);
+                
+                // Gunakan placeholder fallback jika string photo kosong
+                let imageElement = '';
+                if (item.photo && item.photo.trim() !== '') {
+                    // Karena file index ini di luar, relatif pathnya adalah menuju folder foto di tempat yang sama
+                    imageElement = `<img src="foto/${item.photo}" class="mask-image" alt="Foto Topeng ${item.name}" onerror="this.parentElement.innerHTML='<div class=\\'img-fallback\\'><svg fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\'/></svg><br>Foto tidak tersedia</div>'">`;
                 } else {
-                    // Mode pencarian/normal biasa
-                    var matches = !search ||
-                        mask.nama.toLowerCase().includes(search) ||
-                        properties.lokasi.toLowerCase().includes(search) ||
-                        mask.tahun.toString().toLowerCase().includes(search);
-                    if (matches) {
-                        matchedMasks.push(mask);
-                    }
+                    imageElement = `<div class="img-fallback">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><br>Belum ada foto dokumentasi
+                    </div>`;
                 }
+
+                html += `
+                <details class="mask-item">
+                    <summary class="mask-summary">
+                        <span>${highlightedName}</span>
+                        <svg class="mask-summary-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="mask-details">
+                        <div class="mask-image-container">
+                            ${imageElement}
+                        </div>
+                        <div>
+                            <span class="mask-meta">ID: ${highlightedId}</span>
+                            <span class="mask-meta">Tahun: ${highlightedYear}</span>
+                        </div>
+                        <div class="mask-desc-title">Narasi Sejarah:</div>
+                        <p class="mask-desc-content">${highlightedDesc}</p>
+                    </div>
+                </details>`;
             });
-
-            if (matchedMasks.length === 0) return null;
-
-            var lat = properties.latitude;
-            var lng = properties.longitude;
-
-            var html = '<div class="popup-content">';
-            html += '<div class="popup-title">';
-            html += '  <span style="max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + properties.lokasi + '">' + properties.lokasi + '</span>';
             
-            if (targetMaskId) {
-                html += '  <span class="popup-badge">Fokus Pencarian</span>';
-            } else {
-                html += '  <span class="popup-badge">' + matchedMasks.length + ' Topeng</span>';
-            }
-            html += '</div>';
-            html += '<div class="popup-scroll-container">';
-
-            matchedMasks.forEach(function(mask) {
-                var nameDisplay = highlightText(mask.nama, searchTerm);
-                var yearDisplay = highlightText(mask.tahun.toString(), searchTerm);
-                var descDisplay = highlightText(mask.deskripsi, searchTerm);
-
-                // Buka akordion jika dicari lewat keyword atau difokuskan dari dropdown
-                var isExpanded = (searchTerm || targetMaskId || mask.id_topeng === activeHighlightId) ? 'open' : '';
-                var highlightStyle = (mask.id_topeng === activeHighlightId || mask.id_topeng === targetMaskId) ? 'style="border: 2px solid #2563eb; background-color: #eff6ff;"' : '';
-
-                html += '<details ' + isExpanded + ' ' + highlightStyle + '>';
-                html += '  <summary>';
-                html += '    <span>' + nameDisplay + ' (' + yearDisplay + ')</span>';
-                html += '  </summary>';
-                html += '  <div class="accordion-content">';
-                if (mask.gambar) {
-                    var imagePath = mask.gambar.startsWith('http') ? mask.gambar : 'images/' + mask.gambar;
-                    html += '    <div style="text-align: center;">';
-                    html += '      <img src="' + imagePath + '" class="mask-img" alt="' + mask.nama + '" onerror="this.onerror=null; this.src=\'https://placehold.co/150x150?text=' + encodeURIComponent(mask.id_topeng) + '\';">';
-                    html += '    </div>';
-                }
-                html += '    <p style="margin: 0 0 6px 0;"><strong>ID Topeng:</strong> ' + mask.id_topeng + '</p>';
-                html += '    <p style="margin: 0; text-align: justify;">' + descDisplay + '</p>';
-                html += '  </div>';
-                html += '</details>';
-            });
-
-            html += '</div>'; // Tutup popup-scroll-container
-
-            // Jika dalam mode fokus satu topeng, tampilkan tombol untuk memulihkan daftar penuh
-            if (targetMaskId && properties.masks.length > 1) {
-                html += `<div style="margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 8px; text-align: center;">
-                    <button onclick="showAllMasksAt(${lat}, ${lng}, '${targetMaskId}')" style="background-color: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-                         lihat ${properties.masks.length - 1} topeng lainnya di lokasi ini
-                    </button>
-                </div>`;
-            }
-
-            html += '</div>'; // Tutup popup-content
+            html += `</div>`;
             return html;
         }
 
-        // --- FILTER & PEMBARUAN MARKER ---
-        function updateMarkers(searchTerm) {
-            searchTerm = searchTerm || "";
-            if (markerLayer) {
-                map.removeLayer(markerLayer);
-            }
-            if (!geojsonData) return;
+        // --- RENDER MARKER KE PETA ---
+        function renderMap(data, query = "") {
+            markersGroup.clearLayers();
+            
+            const groupedData = groupDataByLocation(data);
+            let markerCount = 0;
 
-            markerLayer = L.geoJSON(geojsonData, {
-                pointToLayer: function (feature, latlng) {
-                    return L.marker(latlng, { icon: customMarkerIcon });
-                },
-                filter: function (feature) {
-                    var props = feature.properties;
-                    var search = searchTerm.toLowerCase();
-                    return props.masks.some(m => 
-                        m.nama.toLowerCase().includes(search) || 
-                        props.lokasi.toLowerCase().includes(search) || 
-                        m.tahun.toLowerCase().includes(search)
-                    );
-                },
-                onEachFeature: function (feature, layer) {
-                    var popupHtml = buildAccordionHtml(feature.properties, searchTerm);
-                    if (popupHtml) {
-                        layer.bindPopup(popupHtml, { 
-                            autoPanPaddingTopLeft: [15, 90], // Batas aman 90px agar tidak tertutup Search Bar
-                            autoPanPaddingBottomRight: [15, 20],
-                            className: 'responsive-popup'
-                        });
+            for (const key in groupedData) {
+                const loc = groupedData[key];
+                markerCount++;
+                
+                const marker = L.marker([loc.lat, loc.lng], { icon: redIcon });
+                
+                // Event Click Marker
+                marker.on('click', function(e) {
+                    if (isMobile) {
+                        // Mode Mobile: Tampilkan di Bottom Drawer
+                        openDrawer(loc, query);
+                    } else {
+                        // Mode Desktop: Tampilkan di Popup bawaan Leaflet
+                        const htmlContent = generateHTMLContent(loc, query);
+                        
+                        const popup = L.popup({
+                            maxWidth: 320,
+                            minWidth: 320,
+                            className: 'custom-popup',
+                            autoPanPaddingTopLeft: L.point(10, 100), // Agar tidak tertutup search bar
+                        })
+                        .setLatLng([loc.lat, loc.lng])
+                        .setContent(htmlContent)
+                        .openOn(map);
                     }
+                    
+                    // Zoom halus ke marker yang diklik (sedikit digeser ke bawah agar popup di tengah)
+                    const offsetLat = isMobile ? loc.lat - 0.05 : loc.lat + 0.01;
+                    map.flyTo([offsetLat, loc.lng], 13, {
+                        animate: true,
+                        duration: 0.8
+                    });
+                });
+                
+                markersGroup.addLayer(marker);
+            }
+
+            // Update UI hasil pencarian
+            const counterEl = document.getElementById('searchCounter');
+            const toastEl = document.getElementById('noResultToast');
+            
+            if (query !== "") {
+                if (markerCount > 0) {
+                    counterEl.textContent = `Ditemukan ${markerCount} titik lokasi`;
+                    counterEl.style.display = 'block';
+                    toastEl.style.opacity = '0';
+                    setTimeout(() => { toastEl.style.display = 'none'; }, 300);
+                    
+                    // Jika ada marker, fitbounds agar terlihat semua (hanya jika lebih dari 1)
+                    if (markerCount > 1) {
+                        const bounds = [];
+                        for(let key in groupedData) {
+                            bounds.push([groupedData[key].lat, groupedData[key].lng]);
+                        }
+                        map.flyToBounds(bounds, { padding: [50, 50], duration: 1 });
+                    } else if (markerCount === 1) {
+                        const singleLoc = groupedData[Object.keys(groupedData)[0]];
+                        map.flyTo([singleLoc.lat, singleLoc.lng], 12, { duration: 1 });
+                    }
+
+                } else {
+                    counterEl.style.display = 'none';
+                    toastEl.style.display = 'block';
+                    setTimeout(() => { toastEl.style.opacity = '1'; }, 10);
                 }
-            }).addTo(map);
-
-            if (searchTerm !== "" && markerLayer.getLayers().length > 0 && !selectedMaskId) {
-                map.fitBounds(markerLayer.getBounds(), { padding: [50, 50], maxZoom: 15 });
+            } else {
+                counterEl.style.display = 'none';
+                toastEl.style.opacity = '0';
+                setTimeout(() => { toastEl.style.display = 'none'; }, 300);
             }
         }
 
-        // --- GLOBAL: MEMULIHKAN DAFTAR PENUH TOPENG ---
-        window.showAllMasksAt = function(lat, lng, activeMaskId) {
-            if (markerLayer) {
-                markerLayer.eachLayer(function(layer) {
-                    var coords = layer.getLatLng();
-                    if (Math.abs(coords.lat - lat) < 0.0001 && Math.abs(coords.lng - lng) < 0.0001) {
-                        var popupHtml = buildAccordionHtml(layer.feature.properties, "", null, activeMaskId);
-                        if (popupHtml) {
-                            layer.bindPopup(popupHtml, { 
-                                autoPanPaddingTopLeft: [15, 90],
-                                autoPanPaddingBottomRight: [15, 20],
-                                className: 'responsive-popup'
-                            }).openPopup();
-                        }
-                    }
-                });
-            }
-        };
+        // --- MOBILE DRAWER LOGIC ---
+        const drawer = document.getElementById('mobile-drawer');
+        const overlay = document.getElementById('map-overlay');
+        const drawerTitle = document.getElementById('drawerTitle');
+        const drawerBody = document.getElementById('drawerBody');
+        const drawerClose = document.getElementById('drawerClose');
+        const drawerHandle = document.getElementById('drawerHandle');
 
-        // --- GLOBAL: MEMILIH TOPENG DARI SARAN DROPDOWN ---
-        window.selectMask = function(maskId, maskName, lat, lng) {
-            selectedMaskId = maskId;
+        function openDrawer(locationData, query) {
+            drawerTitle.textContent = locationData.locationName;
             
-            // Perbarui value input pencarian dengan nama topeng yang dipilih
-            searchInput.value = maskName;
-            clearBtn.style.display = 'flex';
+            // Hapus header bawaan dari generateHTMLContent karena sudah ada di header drawer
+            let rawContent = generateHTMLContent(locationData, query);
             
-            // Sembunyikan panel dropdown
-            document.getElementById('searchResults').style.display = 'none';
+            // Ekstrak isi .popup-body saja menggunakan DOM parser sederhana
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawContent, 'text/html');
+            const bodyContent = doc.querySelector('.popup-body').innerHTML;
             
-            // Filter peta khusus untuk marker tujuan
-            updateMarkers(maskName);
+            drawerBody.innerHTML = bodyContent;
             
-            // Temukan layer marker yang dituju dan buka popup mode terfokus
-            if (markerLayer) {
-                markerLayer.eachLayer(function(layer) {
-                    var props = layer.feature.properties;
-                    var hasMask = props.masks.some(m => m.id_tempeng === maskId || m.id_topeng === maskId);
-                    if (hasMask) {
-                        map.setView([lat, lng], 15);
-                        var popupHtml = buildAccordionHtml(props, "", maskId);
-                        if (popupHtml) {
-                            layer.bindPopup(popupHtml, { 
-                                autoPanPaddingTopLeft: [15, 90],
-                                autoPanPaddingBottomRight: [15, 20],
-                                className: 'responsive-popup'
-                            }).openPopup();
-                        }
-                    }
-                });
-            }
-        };
-
-        // --- MENAMPILKAN SARAN PENCARIAN (SUGGESTIONS LIST) ---
-        function showSuggestions(query) {
-            var dropdown = document.getElementById('searchResults');
-            dropdown.innerHTML = '';
-            
-            if (!geojsonData || query.trim() === "") {
-                dropdown.style.display = 'none';
-                return;
-            }
-            
-            var q = query.toLowerCase();
-            var matches = [];
-            
-            geojsonData.features.forEach(function(feature) {
-                var props = feature.properties;
-                var lat = feature.geometry.coordinates[1];
-                var lng = feature.geometry.coordinates[0];
-                
-                props.masks.forEach(function(mask) {
-                    if (mask.nama.toLowerCase().includes(q) || 
-                        props.lokasi.toLowerCase().includes(q) || 
-                        mask.tahun.toString().toLowerCase().includes(q)) {
-                        matches.push({
-                            mask: mask,
-                            lokasi: props.lokasi,
-                            lat: lat,
-                            lng: lng
-                        });
-                    }
-                });
-            });
-            
-            if (matches.length === 0) {
-                dropdown.innerHTML = '<div style="padding: 14px; text-align: center; color: #94a3b8; font-size: 13px;">Tidak ada hasil ditemukan</div>';
-                dropdown.style.display = 'block';
-                return;
-            }
-            
-            // Batasi tampilan maksimal 50 saran agar rendering tetap super cepat
-            var renderLimit = Math.min(matches.length, 50);
-            var html = '';
-            
-            for (var i = 0; i < renderLimit; i++) {
-                var m = matches[i];
-                var nameHighlight = highlightText(m.mask.nama, query);
-                var locHighlight = highlightText(m.lokasi, query);
-                var yearHighlight = highlightText(m.mask.tahun.toString(), query);
-                
-                // Escape string nama topeng agar aman ditaruh di parameter Javascript inline
-                var escapedName = m.mask.nama.replace(/'/g, "\\'");
-                
-                html += `<div class="search-result-item" onclick="selectMask('${m.mask.id_topeng}', '${escapedName}', ${m.lat}, ${m.lng})">
-                    <div class="result-name">${nameHighlight} (${yearHighlight})</div>
-                    <div class="result-meta">
-                        <span>${locHighlight}</span>
-                        <span style="font-weight: 600; color: #2563eb; background-color: #eff6ff; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${m.mask.id_topeng}</span>
-                    </div>
-                </div>`;
-            }
-            
-            if (matches.length > 50) {
-                html += `<div style="padding: 10px; text-align: center; color: #64748b; font-size: 11px; background: #f8fafc; border-top: 1px solid #e2e8f0;">Menampilkan 50 dari ${matches.length} hasil. Persempit pencarian Anda.</div>`;
-            }
-            
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            overlay.classList.add('active');
+            drawer.classList.add('active');
         }
 
-        // --- PENANGANAN EVENT SEARCH ---
+        function closeDrawer() {
+            drawer.classList.remove('active');
+            overlay.classList.remove('active');
+            // Kembalikan view agak jauh sedikit setelah melihat detail
+            map.setZoom(11);
+        }
+
+        drawerClose.addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
+        drawerHandle.addEventListener('click', closeDrawer); // Handle atas bisa diklik untuk tutup
+
+
+        // --- LOGIKA PENCARIAN REAL-TIME ---
         const searchInput = document.getElementById('searchInput');
         const clearBtn = document.getElementById('clearBtn');
-        const searchResults = document.getElementById('searchResults');
 
         searchInput.addEventListener('input', function(e) {
-            const val = e.target.value;
-            selectedMaskId = null; // Reset fokus jika pengguna mengetik manual kembali
+            const query = e.target.value.toLowerCase().trim();
+            currentSearchQuery = query;
             
-            if (val.trim() !== "") {
+            if (query.length > 0) {
                 clearBtn.style.display = 'flex';
-                showSuggestions(val);
+                // Filter data berdasarkan semua kolom penting
+                const filteredData = allMaskData.filter(item => 
+                    item.name.toLowerCase().includes(query) ||
+                    item.id.toLowerCase().includes(query) ||
+                    item.year.toLowerCase().includes(query) ||
+                    item.location.toLowerCase().includes(query) ||
+                    item.desc.toLowerCase().includes(query)
+                );
+                renderMap(filteredData, query);
+                
+                // Tutup drawer/popup jika sedang terbuka saat mengetik
+                if (isMobile) closeDrawer();
+                else map.closePopup();
+
             } else {
                 clearBtn.style.display = 'none';
-                searchResults.style.display = 'none';
-                updateMarkers('');
-            }
-        });
-
-        searchInput.addEventListener('focus', function() {
-            if (searchInput.value.trim() !== "" && !selectedMaskId) {
-                showSuggestions(searchInput.value);
-            }
-        });
-
-        // Menutup dropdown otomatis ketika pengguna klik di luar bilah pencarian
-        document.addEventListener('click', function(e) {
-            var searchBar = document.getElementById('searchBar');
-            if (!searchBar.contains(e.target)) {
-                searchResults.style.display = 'none';
+                renderMap(allMaskData, ""); // Tampilkan semua jika kosong
+                
+                // Reset view ke seluruh Bali
+                map.flyTo([-8.409518, 115.188916], 10, { duration: 1 });
             }
         });
 
         clearBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            clearBtn.style.display = 'none';
-            searchResults.style.display = 'none';
-            selectedMaskId = null;
-            map.closePopup();
-            updateMarkers('');
+            searchInput.value = "";
             searchInput.focus();
+            clearBtn.style.display = 'none';
+            currentSearchQuery = "";
+            renderMap(allMaskData, "");
+            map.flyTo([-8.409518, 115.188916], 10, { duration: 1 });
+            if (isMobile) closeDrawer();
+            else map.closePopup();
         });
 
-        // Re-center posisi balon popup Leaflet agar selalu pas di layar saat accordion dibuka/ditutup
-        map.on('popupopen', function() {
-            var details = document.querySelectorAll('details');
-            details.forEach(function(detail) {
-                detail.addEventListener('toggle', function() {
-                    if (map._popup) map._popup.update();
-                });
-            });
-        });
 
-        // --- INTEGRASI & ENGINE DATABASE UTUH 300 BARIS ---
+        // --- DUMMY DATA LOKAL (FALLBACK JIKA FILE CSV GAGAL DIMUAT) ---
         function generateDatabase() {
-            let baseData = `no ,id_topeng ,nama_topeng,tahun ,lokasi ,deskripsi,latitude,longitude ,Image \r
-1,TP001,"Anggada, Hanggada",1930,"Museum Sonobudoyo, Yogyakarta","Despite the death of his father Subali at the hands of his uncle, Sugriwa, who succeeds him as the king of the monkeys, Anggada holds no grudge. Famed for his speed, Anggada was chosen as an emissary to the court of Rawana who scoffs at his demand to return Rama's kidnapped wife Sita. Violating diplomatic protocol, Rawana attempts to capture Anggada, who escapes using his magical powers. He would later prove his strength on the battlefield.",-7.802257,110.359438,TP001.jpg\r
-2,TP002,"Anikumba, Raksasa Anikumba, Son of Kumbakarna",1930,"Museum Bali, Denpasar","Anikumba and Akumba are the two sons of Rawana's youngest brother, the mighty Kumbakarna. As the tide of war turns against him, Rawana places Kumbakarna in charge of the demon army. Together with his sons, he leads his warriors onto to the battlefield. In the engagement, Anikumba is defeated by Anggada, the son of Subali, and his brother killed at the hands of Anoman, the white monkey hero and constant companion of Rama. This event shocks Rawana deeply, and he weeps with sadness at the demise of his nephews. It also causes him to realize that, as admonished by Kumbakarna, he made a great error by kidnapping Rama's wife Sita rather than first defeating him in battle. Like his father, Anikumba has a fearsome fanged face with bulbous eyes and an intensely fierce expression. He wears a single gold earring.",-8.657875,115.222384,TP002.jpg\r
-3,TP003,"Arjuna, Deva Panadi",1930,"Museum Bali, Denpasar","The third of the five Pandawa brothers, Arjuna is a consummate warrior who is as much famous for his prowess with the bow as he is for his refined character, good looks and many victories. In the Great Bharata War, the sight of his brothers and kinsfolk in battle array fills him with despair and remorse. His charioteer, Deva Krsna, reminds him of his ksatria warrior duty to defend justice.",-8.657875,115.222384,TP003.jpg\r
-4,TP004,"Arya Tegeh Kuri",1930,"Museum Bali, Denpasar","Tegeh Kuri, also known as Arya Kenceng, is the legendary founder of Tabanan Regency in southwestern Bali. Highly respected for his wisdom, power and spiritual insight, he was deified after his death. His descendants continue to pay respect to him as their ancestor.",-8.657875,115.222384,TP004.jpg\r
-5,TP005,"Arya Tegeh Kuri",1930,"Museum Bali, Denpasar","Tegeh Kuri, also known as Arya Kenceng, is the legendary founder of Tabanan Regency in southwestern Bali. Highly respected for his wisdom, power and spiritual insight, he was deified after his death. His descendants continue to pay respect to him as their ancestor.",-8.657875,115.222384,TP005.jpg\r
-6,TP006,Baris Buntal,1930,"Museum Bali, Denpasar","This dramatic white face with a tiny black moustache represents a baris buntal dancer. Based on an ancient ritual war dance, the name baris literally means 'line' or 'formation' and refers to the soldiers who defended the king. In this theatrical dance, the performer wears a large round crown adorned with hundreds of flowers, matching his brightly colored costume.",-8.657875,115.222384,TP006.jpg\r
-7,TP007,Baris Buntal,1930,"Museum Bali, Denpasar","This dramatic white face with a tiny black moustache represents a baris buntal dancer. Based on an ancient ritual war dance, the name baris literally means 'line' or 'formation' and refers to the soldiers who defended the king. In this theatrical dance, the performer wears a large round crown adorned with hundreds of flowers, matching his brightly colored costume.",-8.657875,115.222384,TP007.jpg\r
-8,TP008,Barong Asu,1930,"Museum Bali, Denpasar","This dramatic black canine face represents Barong Asu, the deified dog. Thought to have originated in Tabanan, southwest Bali, and Badung in the south, Barong Asu is a highly sacred object. He represents a primeval force of nature that protects the community against dark forces, evil spirits and deadly diseases.",-8.657875,115.222384,TP008.jpg\r
-9,TP009,Barong Landung Jauk,1930,"Museum Bali, Denpasar","Barong Landung refers to giant puppets, usually representing Jauk, a demonic forest dweller, and his wife, Jero Luh, who has Chinese-looking features. He is believed to protect the community from disaster.",-8.657875,115.222384,TP009.jpg\r
-10,TP010,Barong Landung Jero Luh,1930,"Museum Bali, Denpasar","Barong Landung Jero Luh is the Chinese-looking wife of the demonic forest dweller, Jauk. She is believed to protect the community from disaster.",-8.657875,115.222384,TP010.jpg\r
-11,TP011,Benda,1930,"Museum Bali, Denpasar","A dramatic white mask with a very large nose and black hair, representing a character in the traditional Calonarang drama.",-8.657875,115.222384,TP011.jpg\r
-12,TP012,Benda,1930,"Museum Bali, Denpasar","A dramatic white mask with a very large nose and black hair, representing a character in the traditional Calonarang drama.",-8.657875,115.222384,TP012.jpg\r
-13,TP013,Boma,1930,"Museum Bali, Denpasar","Boma, the son of Deva Visnu and Devi Pertiwi, the Earth Goddess, is a powerful guardian spirit. He is often depicted above temple gates to protect the inner sanctuary from evil spirits.",-8.657875,115.222384,TP013.jpg\r
-14,TP014,Buduh,1930,"Museum Bali, Denpasar","Buduh means 'crazy' or 'insane'. This mask represents a comic character in traditional Balinese theatre, characterized by his wild eyes and bizarre behavior.",-8.657875,115.222384,TP014.jpg\r
-`;
-            for (let i = 15; i <= 298; i++) {
-                let paddedId = "TP" + String(i).padStart(3, '0');
-                baseData += `${i},${paddedId},Calonarang,1930,"Museum Bali, Denpasar","A fearsome mask representing a witch or demon in the Calonarang drama, a play about magic and exorcism.",-8.657875,115.222384,${paddedId}.jpg\r\n`;
-            }
-            baseData += `299,TP299,Wanara Monkey,1930,"Private Collection, France","This beautiful image captures the mischievous characters of members of the monkeys in Sugriwa's wanara army. Bright, resourceful and playful, like their king they were also easily distracted from the task on hand. Nonetheless they ultimately fulfilled their oaths to help recapture Sita, the kidnapped wife of Rama, from his arch-nemesis Rawana.",46.227638,2.213749,TP299.jpg\r\n`;
-            baseData += `300,TP300,"Wibisana, Younger Brother of Rawana",1930,"Private Collection, France","After his elder brother Rawana, the sorcerer-king of Alengka, kidnaps Princess Sita, Wibisana denounces his actions as cowardly and foolish and asks him to release the innocent wife of Rama. The enraged king banishes Wibisana, who allies himself with Prince Rama and the monkey army, intent on teaching his power-hungry brother a lesson in karmapala.",46.227638,2.213749,TP300.jpg`;
-            
+            let baseData = `No,ID Topeng,Nama Topeng,Tahun,Lokasi,Deskripsi,Latitude,Longitude,Foto\n`;
+            baseData += `1,TP001,"Jauk Manis",1945,"Private Collection Ubud","Topeng sakral jauk manis.",-8.506854,115.262453,TP001.jpg\n`;
+            baseData += `2,TP002,"Arjuna",1930,"Museum Bali","Karakter ksatria.",-8.657577,115.218320,TP002.jpg\n`;
+            baseData += `3,TP003,"Tualen",1925,"Museum Bali","Abdi dalem setia.",-8.657577,115.218320,\n`;
+            baseData += `4,TP004,"Rawana",1950,"Museum Sonobudoyo","Raja Alengka.",-7.802187,110.362947,TP004.jpg\n`;
             return baseData;
         }
 
-        // --- SISTEM PEMUATAN DATA ---
+        // --- SISTEM PEMUATAN DATA ASINKRON (AJAX/FETCH) ---
+        function processCSVData(csvText) {
+            allMaskData = parseCSV(csvText);
+            console.log(`Berhasil memuat ${allMaskData.length} data topeng.`);
+            renderMap(allMaskData, ""); // Render pertama kali (Semua data)
+        }
+
         async function loadData() {
             try {
-                // Berjalan dinamis ketika berhasil membaca berkas di repositori utama GitHub Pages Anda
+                // Memanggil file CSV lokal di folder yang sama
                 const response = await fetch('Data Topeng.csv');
                 if (response.ok) {
                     const csvText = await response.text();
                     processCSVData(csvText);
-                    console.log("Database dinamis berhasil dimuat dari file Data Topeng.csv eksternal.");
+                    console.log("Database dinamis berhasil dimuat dari file Data Topeng.csv");
                     return;
                 }
             } catch (err) {
-                console.warn("Menggunakan database lokal karena dijalankan secara offline.", err);
+                console.warn("Gagal fetch CSV. Menggunakan data cadangan lokal...", err);
             }
             
-            // Backup otomatis jika gagal memuat file (seperti saat pengujian luring)
+            // Backup otomatis jika file gagal dimuat
             const localDatabase = generateDatabase();
             processCSVData(localDatabase);
         }
@@ -808,6 +722,7 @@
         window.onload = function() {
             loadData();
         };
+
     </script>
 </body>
 </html>
