@@ -1375,17 +1375,6 @@
             else map.closePopup();
         });
 
-
-        // --- DUMMY DATA LOKAL (FALLBACK JIKA FILE CSV GAGAL DIMUAT) ---
-        function generateDatabase() {
-            let baseData = `No,ID Topeng,Nama Topeng,Tahun,Lokasi,Deskripsi,Latitude,Longitude,Foto\n`;
-            baseData += `1,TP001,"Jauk Manis",1945,"Private Collection Ubud","Topeng sakral jauk manis.",-8.506854,115.262453,TP001.jpg\n`;
-            baseData += `2,TP002,"Arjuna",1930,"Museum Bali","Karakter ksatria.",-8.657577,115.218320,TP002.jpg\n`;
-            baseData += `3,TP003,"Tualen",1925,"Museum Bali","Abdi dalem setia.",-8.657577,115.218320,\n`;
-            baseData += `4,TP004,"Rawana",1950,"Museum Sonobudoyo","Raja Alengka.",-7.802187,110.362947,TP004.jpg\n`;
-            return baseData;
-        }
-
        // --- SISTEM PEMUATAN DATA ASINKRON (AJAX/FETCH) ---
         function processCSVData(csvText) {
             allMaskData = parseCSV(csvText);
