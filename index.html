@@ -273,3 +273,181 @@
                         </div>
                         <div class="mask-desc-title">Narasi Sejarah:</div>
                         <p class="mask-desc-content">${highlightedDesc}</p>
+                    </div>
+                </details>`;
+            });
+            
+            html += `</div>`;
+            return html;
+        }
+
+        // Logika 3B: Meletakkan Titik (Marker) ke atas Peta
+        function renderMap(data, query = "") {
+            markersGroup.clearLayers();
+            const groupedData = groupDataByLocation(data);
+            let markerCount = 0;
+
+            for (const key in groupedData) {
+                const loc = groupedData[key];
+                markerCount++;
+                const marker = L.marker([loc.lat, loc.lng], { icon: redIcon });
+                
+                // Apa yang terjadi ketika marker diklik?
+                marker.on('click', function(e) {
+                    if (isMobile) {
+                        openDrawer(loc, query); // Buka Drawer di HP
+                    } else {
+                        const htmlContent = generateHTMLContent(loc, query);
+                        const popup = L.popup({
+                            maxWidth: 320, minWidth: 320, className: 'custom-popup',
+                            autoPanPaddingTopLeft: L.point(10, 100), 
+                        })
+                        .setLatLng([loc.lat, loc.lng])
+                        .setContent(htmlContent)
+                        .openOn(map); // Buka Popup di Desktop
+                    }
+                    
+                    const offsetLat = isMobile ? loc.lat - 0.05 : loc.lat + 0.01;
+                    map.flyTo([offsetLat, loc.lng], 13, { animate: true, duration: 0.8 });
+                });
+                
+                markersGroup.addLayer(marker);
+            }
+
+            // Update label hasil jumlah pencarian
+            const counterEl = document.getElementById('searchCounter');
+            const toastEl = document.getElementById('noResultToast');
+            
+            if (query !== "") {
+                if (markerCount > 0) {
+                    counterEl.textContent = `Ditemukan ${markerCount} titik lokasi`;
+                    counterEl.style.display = 'block';
+                    toastEl.style.opacity = '0';
+                    setTimeout(() => { toastEl.style.display = 'none'; }, 300);
+                    
+                    if (markerCount > 1) {
+                        const bounds = [];
+                        for(let key in groupedData) bounds.push([groupedData[key].lat, groupedData[key].lng]);
+                        map.flyToBounds(bounds, { padding: [50, 50], duration: 1 });
+                    } else if (markerCount === 1) {
+                        const singleLoc = groupedData[Object.keys(groupedData)[0]];
+                        map.flyTo([singleLoc.lat, singleLoc.lng], 12, { duration: 1 });
+                    }
+                } else {
+                    counterEl.style.display = 'none';
+                    toastEl.style.display = 'block';
+                    setTimeout(() => { toastEl.style.opacity = '1'; }, 10);
+                }
+            } else {
+                counterEl.style.display = 'none';
+                toastEl.style.opacity = '0';
+                setTimeout(() => { toastEl.style.display = 'none'; }, 300);
+            }
+        }
+
+
+        // ========================================================================= //
+        // BAGIAN JS 4: INTERAKSI PENGGUNA (DRAWER & FITUR PENCARIAN)                //
+        // ========================================================================= //
+        
+        // Interaksi 4A: Kontrol Buka/Tutup Mobile Drawer
+        const drawer = document.getElementById('mobile-drawer');
+        const overlay = document.getElementById('map-overlay');
+        const drawerTitle = document.getElementById('drawerTitle');
+        const drawerBody = document.getElementById('drawerBody');
+        const drawerClose = document.getElementById('drawerClose');
+        const drawerHandle = document.getElementById('drawerHandle');
+
+        function openDrawer(locationData, query) {
+            drawerTitle.textContent = locationData.locationName;
+            let rawContent = generateHTMLContent(locationData, query);
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawContent, 'text/html');
+            const bodyContent = doc.querySelector('.popup-body').innerHTML;
+            
+            drawerBody.innerHTML = bodyContent;
+            overlay.classList.add('active');
+            drawer.classList.add('active');
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('active');
+            overlay.classList.remove('active');
+            map.setZoom(11);
+        }
+
+        drawerClose.addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
+        drawerHandle.addEventListener('click', closeDrawer);
+
+        // Interaksi 4B: Sistem Pencarian Real-Time
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
+
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            currentSearchQuery = query;
+            
+            if (query.length > 0) {
+                clearBtn.style.display = 'flex';
+                const filteredData = allMaskData.filter(item => 
+                    item.name.toLowerCase().includes(query) ||
+                    item.id.toLowerCase().includes(query) ||
+                    item.year.toLowerCase().includes(query) ||
+                    item.location.toLowerCase().includes(query) ||
+                    item.desc.toLowerCase().includes(query)
+                );
+                renderMap(filteredData, query);
+                
+                if (isMobile) closeDrawer();
+                else map.closePopup();
+            } else {
+                clearBtn.style.display = 'none';
+                renderMap(allMaskData, ""); 
+                map.flyTo([-8.409518, 115.188916], 10, { duration: 1 });
+            }
+        });
+
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = "";
+            searchInput.focus();
+            clearBtn.style.display = 'none';
+            currentSearchQuery = "";
+            renderMap(allMaskData, "");
+            map.flyTo([-8.409518, 115.188916], 10, { duration: 1 });
+            if (isMobile) closeDrawer();
+            else map.closePopup();
+        });
+
+
+        // ========================================================================= //
+        // BAGIAN JS 5: PENGAMBILAN DATA EKSTERNAL (FETCH API CSV)                   //
+        // ========================================================================= //
+        
+        function processCSVData(csvText) {
+            allMaskData = parseCSV(csvText);
+            console.log(`Berhasil memuat ${allMaskData.length} data topeng.`);
+            renderMap(allMaskData, ""); 
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch('Data Topeng.csv');
+                if (response.ok) {
+                    const csvText = await response.text();
+                    processCSVData(csvText);
+                } else {
+                    console.error("File Data Topeng.csv tidak ditemukan di server.");
+                }
+            } catch (err) {
+                console.error("Gagal memuat database CSV. Pastikan Anda menjalankan sistem melalui Local Server atau Hosting.", err);
+            }
+        }
+
+        window.onload = function() {
+            loadData();
+        };
+
+    </script>
+</body>
+</html>
