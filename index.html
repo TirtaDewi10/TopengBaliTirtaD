@@ -296,8 +296,14 @@
                 marker.on('click', function(e) {
                     const jumlahTopeng = loc.items.length;
                     if (isMobile) {
-                        document.getElementById('drawerTitle').textContent = loc.locationName;
-                        openDrawer(loc, query); // Buka Drawer di HP
+                        document.getElementById('drawerBody').innerHTML = `
+            <div style="margin-bottom: 10px; font-weight: bold; color: #e74c3c;">
+                Jumlah koleksi: ${jumlahTopeng} topeng
+            </div>
+            ${generateHTMLContent(loc)}
+        `;
+        document.getElementById('mobile-drawer').classList.add('active');
+        document.getElementById('map-overlay').classList.add('active'); // Buka Drawer di HP
                     } else {
                         const htmlContent = generateHTMLContent(loc, query);
                         const popup = L.popup({
