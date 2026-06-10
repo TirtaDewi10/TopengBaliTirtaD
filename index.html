@@ -294,7 +294,8 @@
                 
                 // Apa yang terjadi ketika marker diklik?
                 marker.on('click', function(e) {
-                    marker.on('click', function(e) {
+                     console.log('Marker diklik:', loc);        // ← cek apakah loc terbaca
+                        console.log('Query:', query);    
                     if (isMobile) {
                         openDrawer(loc, query);
                     } else {
