@@ -294,22 +294,13 @@
                 
                 // Apa yang terjadi ketika marker diklik?
                 marker.on('click', function(e) {
-                    const jumlahTopeng = loc.items.length; 
-                    const compactHeader = `
-                        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                            <div style="font-size: 16px; font-weight: bold; color: #333;">${loc.locationName}</div>
-                            <div style="font-size: 12px; color: #64748b;">${jumlahTopeng} topeng ditemukan di sini</div>
-                        </div>
-                    `;
-                
+                    marker.on('click', function(e) {
                     if (isMobile) {
-                        // PERBAIKAN compactHeader 
-                        openDrawer(loc, query, ); 
+                        openDrawer(loc, query);
                     } else {
-                        const popupContent = compactHeader + generateHTMLContent(loc, query);
+                        const popupContent = generateHTMLContent(loc, query); // ← langsung tanpa compactHeader
                         L.popup().setLatLng([loc.lat, loc.lng]).setContent(popupContent).openOn(map);
                     }
-                    
                     // Animasi pergeseran peta
                     const offsetLat = isMobile ? loc.lat - 0.05 : loc.lat + 0.01;
                     map.flyTo([offsetLat, loc.lng], 13, { animate: true, duration: 0.8 });
