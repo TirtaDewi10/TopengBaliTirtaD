@@ -302,29 +302,21 @@
                         </div>
                     `;
                     if (isMobile) {
-                        document.getElementById('drawerTitle').innerHTML = headerHtml;
-                        document.getElementById('drawerBody').innerHTML = generateHTMLContent(loc);
-                        document.getElementById('mobile-drawer').classList.add('active');
-                        document.getElementById('map-overlay').classList.add('active'); // Buka Drawer di HP
+                        // Panggil fungsi openDrawer 
+                        openDrawer(loc, query);
                     } else {
-                        const htmlContent = generateHTMLContent(loc, query);
-                        let html = `<div class="popup-body">`; 
-                        loc.items.forEach(item => {
-                            html += `
-                            <details class="mask-item">
-                                <summary class="mask-summary"><span>${item.name}</span></summary>
-                                <div class="mask-details">
-                                    <p>${item.desc}</p>
-                                </div>
-                            </details>`;
-                        });
-                        return html + `</div>`; // Buka Popup di Desktop
+                        // Untuk desktop, gunakan compactHeader + konten
+                        const popupContent = compactHeader + generateHTMLContent(loc, query);
+                        L.popup()
+                            .setLatLng([loc.lat, loc.lng])
+                            .setContent(popupContent)
+                            .openOn(map);
                     }
                     
+                    // Animasi pergeseran peta
                     const offsetLat = isMobile ? loc.lat - 0.05 : loc.lat + 0.01;
                     map.flyTo([offsetLat, loc.lng], 13, { animate: true, duration: 0.8 });
                 });
-                
                 markersGroup.addLayer(marker);
             }
 
