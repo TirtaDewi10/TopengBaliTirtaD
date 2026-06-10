@@ -294,7 +294,9 @@
                 
                 // Apa yang terjadi ketika marker diklik?
                 marker.on('click', function(e) {
+                    const jumlahTopeng = loc.items.length;
                     if (isMobile) {
+                        document.getElementById('drawerTitle').textContent = loc.locationName;
                         openDrawer(loc, query); // Buka Drawer di HP
                     } else {
                         const htmlContent = generateHTMLContent(loc, query);
