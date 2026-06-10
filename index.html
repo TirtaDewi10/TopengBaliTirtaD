@@ -294,16 +294,18 @@
                 
                 // Apa yang terjadi ketika marker diklik?
                 marker.on('click', function(e) {
-                    const jumlahTopeng = loc.items.length;
+                    const jumlahTopeng = loc.items.length; 
+                    const headerHtml = `
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 18px; font-weight: bold;">${loc.locationName}</div>
+                            <div style="font-size: 12px; color: #64748b; font-weight: 600;">Total ${jumlahTopeng} topeng ditemukan</div>
+                        </div>
+                    `;
                     if (isMobile) {
-                        document.getElementById('drawerBody').innerHTML = `
-            <div style="margin-bottom: 10px; font-weight: bold; color: #e74c3c;">
-                Jumlah koleksi: ${jumlahTopeng} topeng
-            </div>
-            ${generateHTMLContent(loc)}
-        `;
-        document.getElementById('mobile-drawer').classList.add('active');
-        document.getElementById('map-overlay').classList.add('active'); // Buka Drawer di HP
+                        document.getElementById('drawerTitle').innerHTML = headerHtml;
+                        document.getElementById('drawerBody').innerHTML = generateHTMLContent(loc);
+                        document.getElementById('mobile-drawer').classList.add('active');
+                        document.getElementById('map-overlay').classList.add('active'); // Buka Drawer di HP
                     } else {
                         const htmlContent = generateHTMLContent(loc, query);
                         const popup = L.popup({
