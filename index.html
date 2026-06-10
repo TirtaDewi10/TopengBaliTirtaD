@@ -364,14 +364,15 @@
         const drawerClose = document.getElementById('drawerClose');
         const drawerHandle = document.getElementById('drawerHandle');
 
-        function openDrawer(locationData, query) {
+        function openDrawer(locationData, query, headerHtml = "") {
             drawerTitle.textContent = locationData.locationName;
+ 
             let rawContent = generateHTMLContent(locationData, query);
             const parser = new DOMParser();
             const doc = parser.parseFromString(rawContent, 'text/html');
             const bodyContent = doc.querySelector('.popup-body').innerHTML;
             
-            drawerBody.innerHTML = bodyContent;
+            drawerBody.innerHTML = headerHtml + bodyContent;
             overlay.classList.add('active');
             drawer.classList.add('active');
         }
