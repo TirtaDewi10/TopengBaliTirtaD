@@ -121,13 +121,12 @@
             <div class="drawer-handle"></div>
         </div>
         <div class="drawer-header">
-            <h3 class="drawer-title" id="drawerTitle">Lokasi</h3>
-            <button class="drawer-close" id="drawerClose">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+    <div>
+        <h3 class="drawer-title" id="drawerTitle">Lokasi</h3>
+        <p id="drawerSubtitle" style="margin:0; font-size:12px; color:#64748b;"></p> <!-- ← tambah ini -->
+    </div>
+    <button class="drawer-close" id="drawerClose">...</button>
+    </div>
         <div class="drawer-body" id="drawerBody">
         </div>
     </div>
@@ -304,7 +303,7 @@
                 
                     if (isMobile) {
                         // PERBAIKAN compactHeader 
-                        openDrawer(loc, query, compactHeader); 
+                        openDrawer(loc, query, ); 
                     } else {
                         const popupContent = compactHeader + generateHTMLContent(loc, query);
                         L.popup().setLatLng([loc.lat, loc.lng]).setContent(popupContent).openOn(map);
@@ -363,8 +362,11 @@
         function openDrawer(locationData, query, headerHtml = "") {
             drawerTitle.textContent = locationData.locationName;
 
+               document.getElementById('drawerSubtitle').textContent = 
+            `${locationData.items.length} topeng ditemukan di sini`;
+    
             let rawContent = generateHTMLContent(locationData, query);
-            drawerBody.innerHTML = headerHtml + rawContent;
+            drawerBody.innerHTML = rawContent; // ← hapus headerHtml
             overlay.classList.add('active');
             drawer.classList.add('active');
         }
