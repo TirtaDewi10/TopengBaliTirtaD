@@ -295,6 +295,12 @@
                 // Apa yang terjadi ketika marker diklik?
                 marker.on('click', function(e) {
                     const jumlahTopeng = loc.items.length; 
+                    const compactHeader = `
+                        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                            <div style="font-size: 16px; font-weight: bold; color: #333;">${loc.locationName}</div>
+                            <div style="font-size: 12px; color: #64748b;">${jumlahTopeng} topeng ditemukan di sini</div>
+                        </div>
+                    `;
                     if (isMobile) {
                         document.getElementById('drawerTitle').innerHTML = headerHtml;
                         document.getElementById('drawerBody').innerHTML = generateHTMLContent(loc);
@@ -302,13 +308,17 @@
                         document.getElementById('map-overlay').classList.add('active'); // Buka Drawer di HP
                     } else {
                         const htmlContent = generateHTMLContent(loc, query);
-                        const popup = L.popup({
-                            maxWidth: 320, minWidth: 320, className: 'custom-popup',
-                            autoPanPaddingTopLeft: L.point(10, 100), 
-                        })
-                        .setLatLng([loc.lat, loc.lng])
-                        .setContent(htmlContent)
-                        .openOn(map); // Buka Popup di Desktop
+                        let html = `<div class="popup-body">`; 
+                        loc.items.forEach(item => {
+                            html += `
+                            <details class="mask-item">
+                                <summary class="mask-summary"><span>${item.name}</span></summary>
+                                <div class="mask-details">
+                                    <p>${item.desc}</p>
+                                </div>
+                            </details>`;
+                        });
+                        return html + `</div>`; // Buka Popup di Desktop
                     }
                     
                     const offsetLat = isMobile ? loc.lat - 0.05 : loc.lat + 0.01;
